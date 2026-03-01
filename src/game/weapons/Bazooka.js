@@ -12,10 +12,10 @@ export class BazookaProjectile extends Projectile {
     }
 }
 
-export function fireBazooka(scene, figure, wind) {
+export function fireBazooka(scene, figure, wind, power) {
     const dir = figure.facingRight ? 1 : -1;
     const angle = figure.aimAngle * dir;
     const startX = figure.x + Math.cos(angle) * 15;
     const startY = figure.y - 14 + Math.sin(angle) * 15;
-    return new BazookaProjectile(scene, startX, startY, angle, 350, wind);
+    return new BazookaProjectile(scene, startX, startY, angle, power, wind);
 }

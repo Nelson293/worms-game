@@ -15,6 +15,9 @@ import { activateTeleport } from '../game/weapons/Teleport.js';
 
 const WORLD_W = 1920;
 const WORLD_H = 540;
+const MIN_POWER = 150;
+const MAX_POWER = 500;
+const CHARGE_SPEED = 350;
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -29,7 +32,20 @@ export class GameScene extends Phaser.Scene {
         this.crates = [];
         this.stats = { turns: 0, totalDamage: 0 };
 
-        // Effects system (screen shake, debris, damage numbers)
+        // Power charge state
+        this.charging = false;
+        this.chargePower = 0;
+        this.chargeDirection = 1;
+
+        // Trajectory preview
+        this.trajectoryGfx = this.add.graphics();
+        this.trajectoryGfx.setDepth(9);
+
+        // Power bar (world space, near figure)
+        this.powerBarGfx = this.add.graphics();
+        this.powerBarGfx.setDepth(50);
+
+        // Effects system
         this.effects = new Effects(this);
 
         // Sky
@@ -84,7 +100,7 @@ export class GameScene extends Phaser.Scene {
         };
         this.input.keyboard.addCapture([Phaser.Input.Keyboard.KeyCodes.TAB]);
 
-        // Resize handling
+        // Resize
         this.scale.on('resize', () => {
             this.cameras.main.setZoom(this._getIdealZoom());
         });
@@ -96,16 +112,15 @@ export class GameScene extends Phaser.Scene {
         this.events.on('turn-start', (info) => {
             this.currentWind = info.wind;
             this.currentWeaponKey = 'bazooka';
+            this.charging = false;
+            this.chargePower = 0;
             this._focusOnFigure(info.figure);
             this.stats.turns++;
             SFX.turnStart();
 
-            // Spawn crate every 3 turns
             if (this.stats.turns > 1 && this.stats.turns % 3 === 0) {
                 this._spawnCrate();
             }
-
-            // Map events between turns
             this.mapEvents.onTurnEnd();
         });
 
@@ -128,27 +143,20 @@ export class GameScene extends Phaser.Scene {
         const rawDt = delta / 1000;
         const dt = rawDt * this.effects.timeScale;
 
-        // Effects
         this.effects.update(rawDt);
 
-        // Draw debris
         this.debrisGfx.clear();
         this.effects.draw(this.debrisGfx);
 
-        // Turn manager
         this.turnManager.update(dt);
 
-        // Teams / figures
         for (const team of this.teams) {
             team.update(dt, this.terrain);
         }
 
-        // Crates
         for (let i = this.crates.length - 1; i >= 0; i--) {
             this.crates[i].update(dt, this.allFigures);
-            if (!this.crates[i].alive) {
-                this.crates.splice(i, 1);
-            }
+            if (!this.crates[i].alive) this.crates.splice(i, 1);
         }
 
         // Projectile
@@ -165,7 +173,6 @@ export class GameScene extends Phaser.Scene {
                     if (fig) this._focusOnFigure(fig);
                 });
             } else if (this.activeProjectile && this.activeProjectile.alive) {
-                // Camera follows projectile
                 this.cameras.main.stopFollow();
                 this.cameras.main.pan(
                     this.activeProjectile.x,
@@ -178,18 +185,17 @@ export class GameScene extends Phaser.Scene {
         // Input
         if (this.turnManager.phase === 'aiming') {
             this._handleInput(dt);
+        } else {
+            this.trajectoryGfx.clear();
+            this.powerBarGfx.clear();
         }
 
-        // Water
         this._updateWater(time);
     }
 
     _getIdealZoom() {
-        const w = this.scale.width;
         const h = this.scale.height;
-        // Fit vertically with some zoom
-        const zoomH = h / WORLD_H;
-        return Math.max(1, zoomH * 1.4);
+        return Math.max(1, (h / WORLD_H) * 1.4);
     }
 
     _handleInput(dt) {
@@ -199,6 +205,7 @@ export class GameScene extends Phaser.Scene {
         const fineAim = this.cursors.shift.isDown;
         const aimSpeed = fineAim ? 0.8 : 2.5;
 
+        // Aim (always allowed, even while charging)
         if (this.cursors.up.isDown) {
             figure.aimAngle = Math.max(-Math.PI / 2, figure.aimAngle - aimSpeed * dt);
         }
@@ -206,82 +213,215 @@ export class GameScene extends Phaser.Scene {
             figure.aimAngle = Math.min(Math.PI / 2, figure.aimAngle + aimSpeed * dt);
         }
 
-        // Movement
-        const moveSpeed = 70;
-        if (this.cursors.left.isDown || this.keys.a.isDown) {
-            figure.facingRight = false;
-            figure.walkCycle += dt * 8;
-            const newX = figure.x - moveSpeed * dt;
-            if (!this.terrain.isSolid(newX, figure.y - 5) && newX > 5) {
-                figure.x = newX;
-                if (this.terrain.isSolid(newX, figure.y)) {
-                    let steps = 0;
-                    while (this.terrain.isSolid(newX, figure.y - 1) && steps < 6) {
-                        figure.y--;
-                        steps++;
+        // Movement (blocked while charging)
+        if (!this.charging) {
+            const moveSpeed = 70;
+            if (this.cursors.left.isDown || this.keys.a.isDown) {
+                figure.facingRight = false;
+                figure.walkCycle += dt * 8;
+                const newX = figure.x - moveSpeed * dt;
+                if (!this.terrain.isSolid(newX, figure.y - 5) && newX > 5) {
+                    figure.x = newX;
+                    if (this.terrain.isSolid(newX, figure.y)) {
+                        let steps = 0;
+                        while (this.terrain.isSolid(newX, figure.y - 1) && steps < 6) {
+                            figure.y--;
+                            steps++;
+                        }
+                        if (steps >= 6) figure.x += moveSpeed * dt;
                     }
-                    if (steps >= 6) figure.x += moveSpeed * dt;
                 }
             }
-        }
-        if (this.cursors.right.isDown || this.keys.d.isDown) {
-            figure.facingRight = true;
-            figure.walkCycle += dt * 8;
-            const newX = figure.x + moveSpeed * dt;
-            if (!this.terrain.isSolid(newX, figure.y - 5) && newX < WORLD_W - 5) {
-                figure.x = newX;
-                if (this.terrain.isSolid(newX, figure.y)) {
-                    let steps = 0;
-                    while (this.terrain.isSolid(newX, figure.y - 1) && steps < 6) {
-                        figure.y--;
-                        steps++;
+            if (this.cursors.right.isDown || this.keys.d.isDown) {
+                figure.facingRight = true;
+                figure.walkCycle += dt * 8;
+                const newX = figure.x + moveSpeed * dt;
+                if (!this.terrain.isSolid(newX, figure.y - 5) && newX < WORLD_W - 5) {
+                    figure.x = newX;
+                    if (this.terrain.isSolid(newX, figure.y)) {
+                        let steps = 0;
+                        while (this.terrain.isSolid(newX, figure.y - 1) && steps < 6) {
+                            figure.y--;
+                            steps++;
+                        }
+                        if (steps >= 6) figure.x -= moveSpeed * dt;
                     }
-                    if (steps >= 6) figure.x -= moveSpeed * dt;
                 }
+            }
+
+            // Weapon switch
+            if (Phaser.Input.Keyboard.JustDown(this.keys.q)) {
+                this.currentWeaponKey = getNextWeapon(this.currentWeaponKey, -1, this.turnManager.activeTeam);
+                this.events.emit('weapon-changed', this.currentWeaponKey);
+            }
+            if (Phaser.Input.Keyboard.JustDown(this.keys.e) || Phaser.Input.Keyboard.JustDown(this.keys.tab)) {
+                this.currentWeaponKey = getNextWeapon(this.currentWeaponKey, 1, this.turnManager.activeTeam);
+                this.events.emit('weapon-changed', this.currentWeaponKey);
             }
         }
 
-        // Weapon switch
-        if (Phaser.Input.Keyboard.JustDown(this.keys.q)) {
-            this.currentWeaponKey = getNextWeapon(this.currentWeaponKey, -1, this.turnManager.activeTeam);
-            this.events.emit('weapon-changed', this.currentWeaponKey);
-        }
-        if (Phaser.Input.Keyboard.JustDown(this.keys.e) || Phaser.Input.Keyboard.JustDown(this.keys.tab)) {
-            this.currentWeaponKey = getNextWeapon(this.currentWeaponKey, 1, this.turnManager.activeTeam);
-            this.events.emit('weapon-changed', this.currentWeaponKey);
+        // Weapons that fire instantly (no power charge)
+        const instantWeapons = ['shotgun', 'dynamite', 'teleport', 'airstrike'];
+        const usesPower = !instantWeapons.includes(this.currentWeaponKey);
+
+        if (usesPower) {
+            // HOLD space to charge, RELEASE to fire
+            if (this.keys.space.isDown || this.keys.enter.isDown) {
+                if (!this.charging) {
+                    this.charging = true;
+                    this.chargePower = MIN_POWER;
+                    this.chargeDirection = 1;
+                }
+
+                // Power oscillates between min and max
+                this.chargePower += CHARGE_SPEED * dt * this.chargeDirection;
+                if (this.chargePower >= MAX_POWER) {
+                    this.chargePower = MAX_POWER;
+                    this.chargeDirection = -1;
+                }
+                if (this.chargePower <= MIN_POWER) {
+                    this.chargePower = MIN_POWER;
+                    this.chargeDirection = 1;
+                }
+
+                this.events.emit('power-update', (this.chargePower - MIN_POWER) / (MAX_POWER - MIN_POWER));
+            } else if (this.charging) {
+                // Released - FIRE!
+                this._fireWeapon(figure, this.chargePower);
+                this.charging = false;
+                this.chargePower = 0;
+                this.events.emit('power-update', -1);
+            }
+
+            // Trajectory preview (faint when not charging, bright when charging)
+            this._drawTrajectoryPreview(figure);
+            this._drawPowerBar(figure);
+        } else {
+            this.trajectoryGfx.clear();
+            this.powerBarGfx.clear();
+
+            // Instant fire
+            if (Phaser.Input.Keyboard.JustDown(this.keys.space) || Phaser.Input.Keyboard.JustDown(this.keys.enter)) {
+                this._fireWeapon(figure, 0);
+            }
         }
 
-        // Fire
-        if (Phaser.Input.Keyboard.JustDown(this.keys.space) || Phaser.Input.Keyboard.JustDown(this.keys.enter)) {
-            this._fireWeapon(figure);
-        }
-
-        // Camera follow active figure while aiming
+        // Camera follows active figure
         this.cameras.main.pan(figure.x, figure.y - 30, 200);
     }
 
-    _fireWeapon(figure) {
+    _drawTrajectoryPreview(figure) {
+        const gfx = this.trajectoryGfx;
+        gfx.clear();
+
+        const dir = figure.facingRight ? 1 : -1;
+        const angle = figure.aimAngle * dir;
+        const power = this.charging ? this.chargePower : (MIN_POWER + MAX_POWER) * 0.4;
+        const alpha = this.charging ? 0.7 : 0.25;
+
+        let px = figure.x + Math.cos(angle) * 15;
+        let py = figure.y - 14 + Math.sin(angle) * 15;
+        let vx = Math.cos(angle) * power;
+        let vy = Math.sin(angle) * power;
+
+        const gravity = this.currentWeaponKey === 'grenade' ? 350 : 300;
+        const windScale = 12;
+        const simDt = 0.025;
+        const maxDots = 40;
+
+        for (let i = 0; i < maxDots; i++) {
+            vy += gravity * simDt;
+            vx += this.currentWind * windScale * simDt;
+            px += vx * simDt;
+            py += vy * simDt;
+
+            if (px < 0 || px > WORLD_W || py > WORLD_H) break;
+            if (py > 0 && this.terrain.isSolid(px, py)) {
+                // Draw impact marker
+                gfx.lineStyle(1.5, 0xff4444, alpha * 0.8);
+                gfx.strokeCircle(px, py, 6);
+                gfx.lineBetween(px - 4, py - 4, px + 4, py + 4);
+                gfx.lineBetween(px + 4, py - 4, px - 4, py + 4);
+                break;
+            }
+
+            // Only draw every other dot for a dashed look
+            if (i % 2 === 0) {
+                const fade = (1 - i / maxDots) * alpha;
+                const size = 2 - (i / maxDots) * 1.2;
+                gfx.fillStyle(this.charging ? 0xff6644 : 0xffffff, fade);
+                gfx.fillCircle(px, py, Math.max(0.5, size));
+            }
+        }
+    }
+
+    _drawPowerBar(figure) {
+        const gfx = this.powerBarGfx;
+        gfx.clear();
+
+        if (!this.charging) return;
+
+        const pct = (this.chargePower - MIN_POWER) / (MAX_POWER - MIN_POWER);
+        const barX = figure.x - 22;
+        const barY = figure.y + 10;
+        const barW = 44;
+        const barH = 6;
+
+        // Background
+        gfx.fillStyle(0x000000, 0.75);
+        gfx.fillRoundedRect(barX - 2, barY - 2, barW + 4, barH + 4, 3);
+
+        // Fill - gradient green to yellow to red
+        let color;
+        if (pct < 0.35) color = 0x44dd44;
+        else if (pct < 0.65) color = 0xdddd44;
+        else color = 0xff4444;
+
+        gfx.fillStyle(color, 0.95);
+        gfx.fillRoundedRect(barX, barY, barW * pct, barH, 2);
+
+        // Tick marks at 25/50/75%
+        gfx.lineStyle(1, 0xffffff, 0.15);
+        for (let t = 0.25; t < 1; t += 0.25) {
+            const tx = barX + barW * t;
+            gfx.lineBetween(tx, barY, tx, barY + barH);
+        }
+
+        // Border
+        gfx.lineStyle(1, 0xffffff, 0.25);
+        gfx.strokeRoundedRect(barX - 2, barY - 2, barW + 4, barH + 4, 3);
+
+        // Percentage text would be nice but graphics-only is fine
+        // The pulsing color communicates power level
+    }
+
+    _fireWeapon(figure, power) {
         const team = this.turnManager.activeTeam;
         const weaponKey = this.currentWeaponKey;
         if (team.getAmmo(weaponKey) <= 0) return;
 
         team.useAmmo(weaponKey);
         this.turnManager.onFired();
-        SFX.shoot();
+        this.trajectoryGfx.clear();
+        this.powerBarGfx.clear();
 
         switch (weaponKey) {
             case 'bazooka':
-                this.activeProjectile = fireBazooka(this, figure, this.currentWind);
+                SFX.shoot();
+                this.effects.shake(3, 12);
+                this.activeProjectile = fireBazooka(this, figure, this.currentWind, power);
                 break;
             case 'grenade':
-                this.activeProjectile = fireGrenade(this, figure, this.currentWind);
+                SFX.shoot();
+                this.activeProjectile = fireGrenade(this, figure, this.currentWind, power);
                 break;
             case 'shotgun':
                 SFX.shotgunBlast();
+                this.effects.shake(8, 10);
                 this.activeProjectile = fireShotgun(this, figure);
-                this.effects.shake(6, 10);
                 break;
             case 'airstrike': {
+                SFX.shoot();
                 const dir = figure.facingRight ? 1 : -1;
                 const targetX = figure.x + Math.cos(figure.aimAngle * dir) * 200;
                 this.activeProjectile = fireAirstrike(this, targetX, this.terrain, this.allFigures);
@@ -308,7 +448,7 @@ export class GameScene extends Phaser.Scene {
         this.cameras.main.pan(figure.x, figure.y - 30, 600, 'Sine.easeInOut');
     }
 
-    _drawSky(biomeKey) {
+    _drawSky() {
         const sky = this.add.graphics();
         sky.setDepth(0);
 
@@ -321,7 +461,6 @@ export class GameScene extends Phaser.Scene {
             sky.fillRect(0, y, WORLD_W, 1);
         }
 
-        // Clouds
         for (let i = 0; i < 10; i++) {
             const cx = Math.random() * WORLD_W;
             const cy = 15 + Math.random() * 80;
@@ -341,15 +480,11 @@ export class GameScene extends Phaser.Scene {
         const waterTop = this.waterBaseY - this.mapEvents.getWaterOffset();
         const t = time * 0.001;
 
-        // Deep water
         gfx.fillStyle(0x0a3060, 0.9);
         gfx.fillRect(0, waterTop + 8, WORLD_W, WORLD_H - waterTop);
-
-        // Mid water
         gfx.fillStyle(0x1e64c8, 0.7);
         gfx.fillRect(0, waterTop + 3, WORLD_W, 10);
 
-        // Wave surface
         gfx.fillStyle(0x3090e0, 0.6);
         for (let x = 0; x < WORLD_W; x += 2) {
             const waveY = waterTop + Math.sin(x * 0.025 + t * 2) * 4
@@ -357,7 +492,6 @@ export class GameScene extends Phaser.Scene {
             gfx.fillRect(x, waveY, 2, 8);
         }
 
-        // Foam highlights
         gfx.fillStyle(0x88ccff, 0.25);
         for (let x = 0; x < WORLD_W; x += 4) {
             const waveY = waterTop + Math.sin(x * 0.025 + t * 2) * 4;

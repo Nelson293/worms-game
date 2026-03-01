@@ -77,7 +77,7 @@ export class HUDScene extends Phaser.Scene {
         }).setOrigin(0.5, 0);
 
         // Controls hint
-        this.add.text(W / 2, H - 2, 'A/D Move  |  UP/DOWN Aim  |  SPACE Fire  |  Q/E Weapon', {
+        this.add.text(W / 2, H - 2, 'A/D Move  |  UP/DOWN Aim  |  Hold SPACE to Charge  |  Q/E Weapon  |  SHIFT Fine Aim', {
             fontSize: '8px',
             fontFamily: 'Exo 2, sans-serif',
             color: '#444444',

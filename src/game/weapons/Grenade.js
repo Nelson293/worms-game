@@ -115,10 +115,10 @@ export class GrenadeProjectile extends Projectile {
     }
 }
 
-export function fireGrenade(scene, figure, wind) {
+export function fireGrenade(scene, figure, wind, power) {
     const dir = figure.facingRight ? 1 : -1;
     const angle = figure.aimAngle * dir;
     const startX = figure.x + Math.cos(angle) * 12;
     const startY = figure.y - 14 + Math.sin(angle) * 12;
-    return new GrenadeProjectile(scene, startX, startY, angle, 300, wind);
+    return new GrenadeProjectile(scene, startX, startY, angle, power, wind);
 }
