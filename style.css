@@ -1,0 +1,208 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+}
+
+#game-container canvas {
+    display: block;
+    border-radius: 4px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Lobby Overlay */
+#lobby-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    background: rgba(10, 10, 30, 0.95);
+}
+
+#lobby-overlay.hidden {
+    display: none;
+}
+
+.lobby-panel {
+    background: #16213e;
+    border: 2px solid #0f3460;
+    border-radius: 12px;
+    padding: 30px 40px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.lobby-panel h1 {
+    color: #e94560;
+    font-size: 36px;
+    text-align: center;
+    letter-spacing: 6px;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: #a0a0b0;
+    text-align: center;
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin-bottom: 24px;
+}
+
+.team-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #1a1a3e;
+    border-radius: 8px;
+    border: 1px solid #2a2a5e;
+}
+
+.team-row .team-number {
+    color: #666;
+    font-size: 12px;
+    min-width: 20px;
+}
+
+.team-row input[type="text"] {
+    flex: 1;
+    background: #0d1b3e;
+    border: 1px solid #2a3a6e;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+.team-row input[type="text"]:focus {
+    border-color: #e94560;
+}
+
+.color-swatches {
+    display: flex;
+    gap: 4px;
+}
+
+.color-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.2);
+}
+
+.color-swatch.selected {
+    border-color: #fff;
+    transform: scale(1.2);
+}
+
+.figure-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.figure-count button {
+    width: 22px;
+    height: 22px;
+    background: #2a2a5e;
+    border: none;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.figure-count button:hover {
+    background: #3a3a7e;
+}
+
+.figure-count span {
+    color: #ccc;
+    font-size: 13px;
+    min-width: 14px;
+    text-align: center;
+}
+
+.remove-team-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.remove-team-btn:hover {
+    color: #e94560;
+}
+
+.lobby-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+#add-team-btn {
+    background: #2a2a5e;
+    border: 1px solid #3a3a7e;
+    color: #aaa;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#add-team-btn:hover {
+    background: #3a3a7e;
+    color: #fff;
+}
+
+#start-game-btn {
+    background: #e94560;
+    border: none;
+    color: #fff;
+    padding: 10px 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+#start-game-btn:hover {
+    background: #ff5577;
+}
+
+#start-game-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
