@@ -1,3 +1,5 @@
+import { SFX } from '../game/SFX.js';
+
 export class VictoryScene extends Phaser.Scene {
     constructor() {
         super({ key: 'VictoryScene' });
@@ -5,85 +7,170 @@ export class VictoryScene extends Phaser.Scene {
 
     create(data) {
         const winner = data.winner;
+        const stats = data.stats || {};
+        const W = this.scale.width;
+        const H = this.scale.height;
 
-        // Dark background
-        this.add.rectangle(480, 270, 960, 540, 0x0a0a1e, 0.95);
+        // Background
+        this.add.rectangle(W / 2, H / 2, W, H, 0x0a0a1e, 0.97);
+
+        // Animated background particles
+        this._createBgParticles(W, H, winner?.color || 0xffffff);
 
         if (winner) {
             const colorStr = '#' + winner.color.toString(16).padStart(6, '0');
 
-            // Winner text
-            this.add.text(480, 150, 'VICTORY!', {
-                fontSize: '64px',
+            // Victory text with entrance animation
+            const victoryText = this.add.text(W / 2, H * 0.22, 'VICTORY!', {
+                fontSize: '56px',
+                fontFamily: 'Russo One, sans-serif',
                 color: colorStr,
                 stroke: '#000000',
                 strokeThickness: 6,
-                fontStyle: 'bold',
-            }).setOrigin(0.5);
+            }).setOrigin(0.5).setScale(0).setAlpha(0);
 
-            this.add.text(480, 230, winner.name, {
-                fontSize: '36px',
+            this.tweens.add({
+                targets: victoryText,
+                scaleX: 1, scaleY: 1, alpha: 1,
+                duration: 600,
+                ease: 'Back.easeOut',
+            });
+
+            // Winner name
+            const nameText = this.add.text(W / 2, H * 0.38, winner.name, {
+                fontSize: '32px',
+                fontFamily: 'Russo One, sans-serif',
                 color: '#ffffff',
                 stroke: '#000000',
                 strokeThickness: 4,
-                fontStyle: 'bold',
-            }).setOrigin(0.5);
+            }).setOrigin(0.5).setAlpha(0);
 
-            this.add.text(480, 280, 'wins the battle!', {
-                fontSize: '18px',
-                color: '#aaaaaa',
-            }).setOrigin(0.5);
+            this.tweens.add({
+                targets: nameText,
+                alpha: 1,
+                duration: 500,
+                delay: 400,
+            });
 
-            // Confetti particles
-            this._createConfetti(winner.color);
+            const subtitle = this.add.text(W / 2, H * 0.46, 'wins the battle!', {
+                fontSize: '16px',
+                fontFamily: 'Exo 2, sans-serif',
+                color: '#888888',
+            }).setOrigin(0.5).setAlpha(0);
+
+            this.tweens.add({
+                targets: subtitle,
+                alpha: 1,
+                duration: 500,
+                delay: 600,
+            });
+
+            // Confetti
+            this._createConfetti(W, H, winner.color);
         } else {
-            this.add.text(480, 200, 'DRAW!', {
-                fontSize: '64px',
+            const drawText = this.add.text(W / 2, H * 0.3, 'DRAW!', {
+                fontSize: '56px',
+                fontFamily: 'Russo One, sans-serif',
                 color: '#ffcc00',
                 stroke: '#000000',
                 strokeThickness: 6,
-                fontStyle: 'bold',
             }).setOrigin(0.5);
 
-            this.add.text(480, 270, 'Everyone was eliminated!', {
-                fontSize: '18px',
-                color: '#aaaaaa',
+            this.add.text(W / 2, H * 0.42, 'Everyone was eliminated!', {
+                fontSize: '16px',
+                fontFamily: 'Exo 2, sans-serif',
+                color: '#888888',
             }).setOrigin(0.5);
         }
 
+        // Stats
+        if (stats.turns) {
+            const statsY = H * 0.56;
+            this.add.text(W / 2, statsY, `Turns played: ${stats.turns}`, {
+                fontSize: '12px',
+                fontFamily: 'Exo 2, sans-serif',
+                color: '#555555',
+            }).setOrigin(0.5).setAlpha(0).setAlpha(1);
+        }
+
         // Play Again button
-        const btnBg = this.add.rectangle(480, 400, 200, 50, 0xe94560)
-            .setInteractive({ useHandCursor: true });
+        const btnY = H * 0.72;
+        const btnBg = this.add.rectangle(W / 2, btnY, 200, 50, 0xe94560)
+            .setInteractive({ useHandCursor: true })
+            .setAlpha(0);
 
-        const btnText = this.add.text(480, 400, 'PLAY AGAIN', {
+        const btnText = this.add.text(W / 2, btnY, 'PLAY AGAIN', {
             fontSize: '18px',
+            fontFamily: 'Russo One, sans-serif',
             color: '#ffffff',
-            fontStyle: 'bold',
-            letterSpacing: 2,
-        }).setOrigin(0.5);
+            letterSpacing: 3,
+        }).setOrigin(0.5).setAlpha(0);
 
-        btnBg.on('pointerover', () => btnBg.setFillStyle(0xff5577));
-        btnBg.on('pointerout', () => btnBg.setFillStyle(0xe94560));
+        this.tweens.add({
+            targets: [btnBg, btnText],
+            alpha: 1,
+            duration: 500,
+            delay: 1000,
+        });
+
+        btnBg.on('pointerover', () => {
+            btnBg.setFillStyle(0xff5577);
+            btnText.setScale(1.05);
+        });
+        btnBg.on('pointerout', () => {
+            btnBg.setFillStyle(0xe94560);
+            btnText.setScale(1);
+        });
         btnBg.on('pointerdown', () => {
             this.scene.start('LobbyScene');
         });
     }
 
-    _createConfetti(winnerColor) {
+    _createBgParticles(W, H, color) {
+        const gfx = this.add.graphics();
+        const particles = [];
+        for (let i = 0; i < 30; i++) {
+            particles.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                size: 1 + Math.random() * 2,
+                speed: 0.2 + Math.random() * 0.5,
+                alpha: 0.1 + Math.random() * 0.15,
+            });
+        }
+
+        this.time.addEvent({
+            delay: 32,
+            repeat: -1,
+            callback: () => {
+                gfx.clear();
+                for (const p of particles) {
+                    p.y -= p.speed;
+                    if (p.y < -5) { p.y = H + 5; p.x = Math.random() * W; }
+                    gfx.fillStyle(color, p.alpha);
+                    gfx.fillCircle(p.x, p.y, p.size);
+                }
+            }
+        });
+    }
+
+    _createConfetti(W, H, winnerColor) {
         const colors = [winnerColor, 0xffcc00, 0xff6644, 0x44ff66, 0x4488ff, 0xff44aa];
         const gfx = this.add.graphics();
+        gfx.setDepth(10);
 
         const particles = [];
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < 100; i++) {
             particles.push({
-                x: Math.random() * 960,
-                y: -20 - Math.random() * 200,
-                vx: (Math.random() - 0.5) * 100,
-                vy: 50 + Math.random() * 150,
-                size: 3 + Math.random() * 5,
+                x: Math.random() * W,
+                y: -20 - Math.random() * 300,
+                vx: (Math.random() - 0.5) * 120,
+                vy: 40 + Math.random() * 160,
+                size: 3 + Math.random() * 6,
                 color: colors[Math.floor(Math.random() * colors.length)],
                 rot: Math.random() * Math.PI * 2,
-                rotSpeed: (Math.random() - 0.5) * 5,
+                rotSpeed: (Math.random() - 0.5) * 6,
+                wobble: Math.random() * Math.PI * 2,
             });
         }
 
@@ -93,19 +180,23 @@ export class VictoryScene extends Phaser.Scene {
             callback: () => {
                 gfx.clear();
                 for (const p of particles) {
-                    p.x += p.vx * 0.016;
+                    p.x += (p.vx + Math.sin(p.wobble) * 20) * 0.016;
                     p.y += p.vy * 0.016;
-                    p.vy += 30 * 0.016;
+                    p.vy += 25 * 0.016;
                     p.rot += p.rotSpeed * 0.016;
+                    p.wobble += 3 * 0.016;
 
-                    if (p.y > 560) {
+                    if (p.y > H + 20) {
                         p.y = -20;
-                        p.x = Math.random() * 960;
-                        p.vy = 50 + Math.random() * 150;
+                        p.x = Math.random() * W;
+                        p.vy = 40 + Math.random() * 160;
                     }
 
-                    gfx.fillStyle(p.color, 0.8);
-                    gfx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size * 0.6);
+                    gfx.fillStyle(p.color, 0.85);
+                    // Rotated rectangle effect
+                    const w = p.size;
+                    const h = p.size * 0.5;
+                    gfx.fillRect(p.x - w / 2, p.y - h / 2, w, h);
                 }
             }
         });

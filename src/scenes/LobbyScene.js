@@ -9,7 +9,10 @@ const PRESET_COLORS = [
     { name: 'Teal', hex: 0x44cccc },
 ];
 
-const DEFAULT_NAMES = ['Red Squad', 'Blue Team', 'Green Gang', 'Yellow Crew', 'Orange Force', 'Purple Haze', 'Pink Panthers', 'Teal Titans'];
+const DEFAULT_NAMES = [
+    'Red Squad', 'Blue Team', 'Green Gang', 'Yellow Crew',
+    'Orange Force', 'Purple Haze', 'Pink Panthers', 'Teal Titans'
+];
 
 export class LobbyScene extends Phaser.Scene {
     constructor() {
@@ -17,9 +20,6 @@ export class LobbyScene extends Phaser.Scene {
     }
 
     create() {
-        // Draw a simple background
-        this.add.rectangle(480, 270, 960, 540, 0x1a1a2e);
-
         this.teamConfigs = [
             { name: DEFAULT_NAMES[0], color: PRESET_COLORS[0].hex, figureCount: 3 },
             { name: DEFAULT_NAMES[1], color: PRESET_COLORS[1].hex, figureCount: 3 },
@@ -36,9 +36,6 @@ export class LobbyScene extends Phaser.Scene {
         const addBtn = document.getElementById('add-team-btn');
         const startBtn = document.getElementById('start-game-btn');
 
-        // Clear previous
-        container.innerHTML = '';
-
         const renderTeams = () => {
             container.innerHTML = '';
             this.teamConfigs.forEach((team, i) => {
@@ -48,10 +45,10 @@ export class LobbyScene extends Phaser.Scene {
                     <span class="team-number">P${i + 1}</span>
                     <input type="text" value="${team.name}" placeholder="Team name" maxlength="15" data-idx="${i}">
                     <div class="color-swatches" data-idx="${i}">
-                        ${PRESET_COLORS.map((c, ci) => `
+                        ${PRESET_COLORS.map((c) => `
                             <div class="color-swatch ${team.color === c.hex ? 'selected' : ''}"
                                  style="background: #${c.hex.toString(16).padStart(6, '0')}"
-                                 data-color="${c.hex}" data-ci="${ci}"></div>
+                                 data-color="${c.hex}"></div>
                         `).join('')}
                     </div>
                     <div class="figure-count">
@@ -64,23 +61,20 @@ export class LobbyScene extends Phaser.Scene {
                 container.appendChild(row);
             });
 
-            // Update add button visibility
             addBtn.style.display = this.teamConfigs.length >= 8 ? 'none' : '';
 
             // Bind events
             container.querySelectorAll('input[type="text"]').forEach(input => {
                 input.addEventListener('change', (e) => {
-                    const idx = parseInt(e.target.dataset.idx);
-                    this.teamConfigs[idx].name = e.target.value || DEFAULT_NAMES[idx];
+                    this.teamConfigs[parseInt(e.target.dataset.idx)].name = e.target.value || DEFAULT_NAMES[parseInt(e.target.dataset.idx)];
                 });
             });
 
             container.querySelectorAll('.color-swatch').forEach(swatch => {
                 swatch.addEventListener('click', (e) => {
-                    const colorVal = parseInt(e.target.dataset.color);
                     const parent = e.target.closest('.color-swatches');
                     const idx = parseInt(parent.dataset.idx);
-                    this.teamConfigs[idx].color = colorVal;
+                    this.teamConfigs[idx].color = parseInt(e.target.dataset.color);
                     parent.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
                     e.target.classList.add('selected');
                 });
@@ -108,8 +102,7 @@ export class LobbyScene extends Phaser.Scene {
 
             container.querySelectorAll('.remove-team-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const idx = parseInt(e.target.dataset.idx);
-                    this.teamConfigs.splice(idx, 1);
+                    this.teamConfigs.splice(parseInt(e.target.dataset.idx), 1);
                     renderTeams();
                 });
             });
@@ -117,11 +110,9 @@ export class LobbyScene extends Phaser.Scene {
 
         renderTeams();
 
-        // Add team
         addBtn.onclick = () => {
             const nextIdx = this.teamConfigs.length;
             if (nextIdx >= 8) return;
-            // Find an unused color
             const usedColors = new Set(this.teamConfigs.map(t => t.color));
             const availColor = PRESET_COLORS.find(c => !usedColors.has(c.hex)) || PRESET_COLORS[nextIdx % 8];
             this.teamConfigs.push({
@@ -132,15 +123,10 @@ export class LobbyScene extends Phaser.Scene {
             renderTeams();
         };
 
-        // Start game
         startBtn.onclick = () => {
-            // Read final names from inputs
             container.querySelectorAll('input[type="text"]').forEach((input, i) => {
-                if (input.value.trim()) {
-                    this.teamConfigs[i].name = input.value.trim();
-                }
+                if (input.value.trim()) this.teamConfigs[i].name = input.value.trim();
             });
-
             overlay.classList.add('hidden');
             this.scene.start('GameScene', { teams: this.teamConfigs });
         };

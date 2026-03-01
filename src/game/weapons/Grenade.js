@@ -1,4 +1,5 @@
 import { Projectile } from '../Projectile.js';
+import { SFX } from '../SFX.js';
 
 export class GrenadeProjectile extends Projectile {
     constructor(scene, x, y, angle, power, wind) {
@@ -63,6 +64,7 @@ export class GrenadeProjectile extends Projectile {
                 this.vy = -this.vy * this.BOUNCE_DAMPEN;
             }
             this.vx *= 0.9;
+            SFX.bounce();
         } else {
             this.x = newX;
             this.y = newY;

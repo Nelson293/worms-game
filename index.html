@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Figures - Artillery Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MINI WARS - Artillery Showdown</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 </head>
@@ -13,12 +13,24 @@
     <!-- Lobby Overlay -->
     <div id="lobby-overlay">
         <div class="lobby-panel">
-            <h1>MINI FIGURES</h1>
-            <p class="subtitle">Artillery Showdown</p>
+            <div class="logo-container">
+                <h1 class="game-logo">MINI WARS</h1>
+                <div class="logo-underline"></div>
+                <p class="subtitle">ARTILLERY SHOWDOWN</p>
+            </div>
             <div id="teams-container"></div>
             <div class="lobby-buttons">
-                <button id="add-team-btn">+ Add Team</button>
-                <button id="start-game-btn">START GAME</button>
+                <button id="add-team-btn"><span class="btn-icon">+</span> Add Team</button>
+                <button id="start-game-btn">BATTLE!</button>
+            </div>
+            <div class="controls-info">
+                <div class="control-group">
+                    <span class="key">A/D</span> Move
+                    <span class="key sep">&uarr;&darr;</span> Aim
+                    <span class="key sep">SPACE</span> Fire
+                    <span class="key sep">Q/E</span> Weapon
+                    <span class="key sep">SHIFT</span> Fine Aim
+                </div>
             </div>
         </div>
     </div>

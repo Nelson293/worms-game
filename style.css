@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:wght@400;700&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -5,26 +7,29 @@
 }
 
 body {
-    background: #1a1a2e;
+    background: #0a0a1a;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    font-family: 'Segoe UI', Arial, sans-serif;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Exo 2', 'Segoe UI', Arial, sans-serif;
     overflow: hidden;
 }
 
 #game-container {
+    width: 100vw;
+    height: 100vh;
     position: relative;
 }
 
 #game-container canvas {
     display: block;
-    border-radius: 4px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    width: 100% !important;
+    height: 100% !important;
 }
 
-/* Lobby Overlay */
+/* ============ LOBBY ============ */
 #lobby-overlay {
     position: fixed;
     top: 0; left: 0;
@@ -33,7 +38,13 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 100;
-    background: rgba(10, 10, 30, 0.95);
+    background: radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a1a 100%);
+    animation: lobbyFadeIn 0.5s ease-out;
+}
+
+@keyframes lobbyFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 #lobby-overlay.hidden {
@@ -41,62 +52,87 @@ body {
 }
 
 .lobby-panel {
-    background: #16213e;
-    border: 2px solid #0f3460;
-    border-radius: 12px;
+    background: linear-gradient(180deg, #1a2040 0%, #12162e 100%);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 16px;
     padding: 30px 40px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 85vh;
+    max-width: 620px;
+    width: 92%;
+    max-height: 90vh;
     overflow-y: auto;
+    box-shadow: 0 0 60px rgba(233, 69, 96, 0.15), 0 20px 60px rgba(0,0,0,0.5);
 }
 
-.lobby-panel h1 {
-    color: #e94560;
-    font-size: 36px;
+.logo-container {
     text-align: center;
-    letter-spacing: 6px;
-    margin-bottom: 4px;
+    margin-bottom: 28px;
+}
+
+.game-logo {
+    font-family: 'Russo One', sans-serif;
+    color: #fff;
+    font-size: 48px;
+    letter-spacing: 8px;
+    text-shadow: 0 0 30px rgba(233, 69, 96, 0.6), 0 2px 0 #e94560;
+    margin-bottom: 6px;
+}
+
+.logo-underline {
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #e94560, transparent);
+    margin: 0 auto 10px;
 }
 
 .subtitle {
-    color: #a0a0b0;
-    text-align: center;
-    font-size: 14px;
-    letter-spacing: 3px;
-    margin-bottom: 24px;
+    color: #667;
+    font-size: 13px;
+    letter-spacing: 6px;
+    font-weight: 400;
 }
 
+/* Team rows */
 .team-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px;
+    padding: 12px 14px;
     margin-bottom: 8px;
-    background: #1a1a3e;
-    border-radius: 8px;
-    border: 1px solid #2a2a5e;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.team-row:hover {
+    border-color: rgba(233, 69, 96, 0.3);
+    background: rgba(255,255,255,0.05);
 }
 
 .team-row .team-number {
-    color: #666;
-    font-size: 12px;
-    min-width: 20px;
+    color: #555;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 22px;
+    letter-spacing: 1px;
 }
 
 .team-row input[type="text"] {
     flex: 1;
-    background: #0d1b3e;
-    border: 1px solid #2a3a6e;
-    border-radius: 4px;
-    padding: 6px 10px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 7px 12px;
     color: #fff;
     font-size: 14px;
+    font-family: 'Exo 2', sans-serif;
     outline: none;
+    transition: border-color 0.2s;
 }
 
 .team-row input[type="text"]:focus {
     border-color: #e94560;
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.2);
 }
 
 .color-swatches {
@@ -105,104 +141,163 @@ body {
 }
 
 .color-swatch {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
-    transition: transform 0.15s;
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .color-swatch:hover {
-    transform: scale(1.2);
+    transform: scale(1.25);
 }
 
 .color-swatch.selected {
     border-color: #fff;
-    transform: scale(1.2);
+    transform: scale(1.25);
+    box-shadow: 0 0 10px currentColor;
 }
 
 .figure-count {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
 }
 
 .figure-count button {
-    width: 22px;
-    height: 22px;
-    background: #2a2a5e;
-    border: none;
-    color: #fff;
-    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #ccc;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1;
+    transition: background 0.15s;
 }
 
 .figure-count button:hover {
-    background: #3a3a7e;
+    background: rgba(233, 69, 96, 0.3);
+    color: #fff;
 }
 
 .figure-count span {
-    color: #ccc;
-    font-size: 13px;
-    min-width: 14px;
+    color: #ddd;
+    font-size: 14px;
+    min-width: 16px;
     text-align: center;
+    font-weight: 700;
 }
 
 .remove-team-btn {
     background: none;
     border: none;
-    color: #666;
-    font-size: 18px;
+    color: #444;
+    font-size: 20px;
     cursor: pointer;
     padding: 0 4px;
+    transition: color 0.15s;
 }
 
 .remove-team-btn:hover {
     color: #e94560;
 }
 
+/* Buttons */
 .lobby-buttons {
     display: flex;
-    gap: 12px;
-    margin-top: 20px;
+    gap: 14px;
+    margin-top: 24px;
     justify-content: center;
 }
 
 #add-team-btn {
-    background: #2a2a5e;
-    border: 1px solid #3a3a7e;
-    color: #aaa;
-    padding: 10px 20px;
-    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #888;
+    padding: 12px 22px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
+    font-family: 'Exo 2', sans-serif;
+    transition: all 0.2s;
 }
 
 #add-team-btn:hover {
-    background: #3a3a7e;
+    background: rgba(255,255,255,0.1);
     color: #fff;
+    border-color: rgba(255,255,255,0.2);
+}
+
+.btn-icon {
+    font-weight: 700;
 }
 
 #start-game-btn {
-    background: #e94560;
+    background: linear-gradient(135deg, #e94560, #c73e54);
     border: none;
     color: #fff;
-    padding: 10px 30px;
-    border-radius: 6px;
+    padding: 12px 40px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    letter-spacing: 2px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Russo One', sans-serif;
+    letter-spacing: 3px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(233, 69, 96, 0.3);
 }
 
 #start-game-btn:hover {
-    background: #ff5577;
+    background: linear-gradient(135deg, #ff5577, #e94560);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(233, 69, 96, 0.5);
 }
 
-#start-game-btn:disabled {
-    background: #555;
-    cursor: not-allowed;
+#start-game-btn:active {
+    transform: translateY(0);
+}
+
+/* Controls info */
+.controls-info {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.control-group {
+    color: #445;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.key {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    color: #999;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    margin: 0 2px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.sep {
+    margin-left: 10px;
+}
+
+/* Scrollbar */
+.lobby-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.lobby-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lobby-panel::-webkit-scrollbar-thumb {
+    background: rgba(233, 69, 96, 0.3);
+    border-radius: 3px;
 }

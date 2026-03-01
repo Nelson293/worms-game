@@ -62,8 +62,10 @@ export class DynamiteItem {
             }
         }
 
-        // Explosion visual
-        this._showExplosion();
+        // Use Effects system
+        if (this.scene.effects) {
+            this.scene.effects.bigExplosion(this.x, this.y, this.blastRadius);
+        }
 
         this.alive = false;
         this.gfx.destroy();
